@@ -13,9 +13,15 @@ interface AuthContextValue {
   token: string | null;
   isAdmin: boolean;
   login: (email: string, password: string) => Promise<User>;
+  register: (payload: RegisterPayload) => Promise<User>;
+  updateProfile: (profile: ProfilePayload) => Promise<User>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
 }
+
+export type ProfilePayload = Pick<User, "name" | "phone" | "business">;
+export type RegisterPayload = ProfilePayload & { email: string; password: string };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
@@ -37,7 +43,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
       (err) => {
         if (isCancelled()) return;
-        if (err instanceof ApiError && err.status === 401) tokenStore.set(null);
+        if (err instanceof ApiError && err.status === 401) {
+          if (tokenStore.get() === currentToken) tokenStore.set(null);
+        }
         else setFailedToken(currentToken);
       }
     );
@@ -62,6 +70,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return res.data.user;
   }, []);
 
+  const register = useCallback(async (payload: RegisterPayload) => {
+    const res = await apiFetch<ApiResponse<{ token: string; user: User }>>("/auth/register", {
+      method: "POST",
+      body: payload,
+    });
+    setSession(res.data);
+    tokenStore.set(res.data.token);
+    return res.data.user;
+  }, []);
+
+  const updateProfile = useCallback(
+    async (profile: ProfilePayload) => {
+      if (!token) throw new ApiError(401, "Please sign in again");
+      const res = await apiFetch<ApiResponse<{ user: User }>>("/me/profile", {
+        method: "PATCH",
+        token,
+        body: profile,
+      });
+      setSession({ token, user: res.data.user });
+      return res.data.user;
+    },
+    [token]
+  );
+
+  const changePassword = useCallback(
+    async (currentPassword: string, newPassword: string) => {
+      if (!token || !session) throw new ApiError(401, "Please sign in again");
+      const res = await apiFetch<ApiResponse<{ token: string }>>("/me/password", {
+        method: "PUT",
+        token,
+        body: { currentPassword, newPassword },
+      });
+      // Other sessions were signed out by the API; swap in the fresh token without a refetch.
+      setSession({ token: res.data.token, user: session.user });
+      tokenStore.set(res.data.token);
+    },
+    [token, session]
+  );
+
   const logout = useCallback(() => {
     tokenStore.set(null);
     setSession(null);
@@ -81,10 +128,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       token: user ? token! : null,
       isAdmin: user?.role === "admin",
       login,
+      register,
+      updateProfile,
+      changePassword,
       logout,
       refreshUser,
     };
-  }, [token, session, failedToken, login, logout, refreshUser]);
+  }, [token, session, failedToken, login, register, updateProfile, changePassword, logout, refreshUser]);
 
   return <AuthContext value={value}>{children}</AuthContext>;
 }

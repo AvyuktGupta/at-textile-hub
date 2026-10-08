@@ -42,19 +42,30 @@ backend/src
 ├── server.js           Boots the DB connection and HTTP server, handles graceful shutdown
 ├── config/             Environment parsing and MongoDB connection
 ├── middleware/         auth.js (protect, optionalAuth, requireRole, requireAdmin), error.js
-├── models/             User, Product, SiteSettings
+├── models/             User, Product, SiteSettings, Order
 ├── routes/             API routers mounted under /api
-├── services/           Upload cleanup, storefront cache revalidation webhook
+├── services/           Cart pricing, mailer + order email templates, upload cleanup,
+│                       storefront cache revalidation webhook
 ├── scripts/            seedAdmin.js, seedDemo.js
-└── utils/              ApiError, JWT helpers
+└── utils/              ApiError, JWT helpers, buyer profile validation
 ```
 
 ### API endpoints
 
 | Method | Path                  | Access | Notes                                                        |
 | ------ | --------------------- | ------ | ------------------------------------------------------------ |
+| POST   | `/api/auth/register`  | Public | Email, password, phone, business + shipping details. Rate limited |
 | POST   | `/api/auth/login`     | Public | Rate limited. Returns `{ token, user }`                      |
 | GET    | `/api/auth/me`        | User   | Current account                                              |
+| PATCH  | `/api/me/profile`     | User   | Name, phone, business and shipping details                   |
+| PUT    | `/api/me/password`    | User   | `{ currentPassword, newPassword }`; signs out other devices, returns a new token |
+| GET    | `/api/me/orders`      | User   | The buyer's 50 most recent orders                            |
+| POST   | `/api/cart/quote`     | Public | `{ items: [{ productId, quantity }] }` → current prices and issues |
+| POST   | `/api/orders`         | User   | `{ items, notes?, idempotencyKey }`; needs a complete profile |
+| GET    | `/api/orders`         | Admin  | `q`, `status`, `page`, `limit`                               |
+| GET    | `/api/orders/:id`     | Admin  |                                                              |
+| PATCH  | `/api/orders/:id`     | Admin  | `{ status }`: `submitted`, `confirmed`, `dispatched`, `cancelled` |
+| POST   | `/api/orders/:id/resend-email` | Admin | `{ target: "business" \| "customer" }`              |
 | GET    | `/api/storefront/home` | Public | Banner settings, homepage sections with products, top tags |
 | GET    | `/api/me/recently-viewed` | User | Last viewed active products, newest first                |
 | POST   | `/api/me/recently-viewed` | User | `{ productId }`; de-duplicated, capped at 20             |
@@ -80,6 +91,29 @@ Product `finalPrice` is derived from `basePrice` and `discountPercentage` on eve
 updates (`findOneAndUpdate`, `updateOne`) that touch pricing are rejected so the stored price can
 never drift; load the document and call `save()` instead.
 
+### Orders and email
+
+The cart lives in the buyer's browser. Prices shown in the cart always come from
+`/api/cart/quote`, and `POST /api/orders` re-prices every line from the database, so prices sent
+by the browser are never trusted. Items that are hidden, out of stock or below their minimum order
+quantity block submission until the buyer fixes them.
+
+On submit the order is saved first (with a snapshot of prices and the buyer's details), then two
+emails are sent: the full order to the **Order destination email** from Site settings, with
+Reply-To set to the buyer, and a confirmation to the buyer. Each email's delivery status is stored
+on the order and shown in **Admin → Orders**, where it can be resent. A failed email never loses an
+order. Each checkout sends an `idempotencyKey`, so retrying after a dropped connection cannot create
+a duplicate order.
+
+SMTP is configured with the `SMTP_*` and `MAIL_FROM` variables in `backend/.env`; `STORE_NAME` and
+`STOREFRONT_URL` are used in the email copy and links. When `SMTP_HOST` is empty:
+
+- in development, each email is written to `backend/mail-previews/` as an HTML file you can open
+  in a browser;
+- in production, emails are skipped and a warning is logged at startup.
+
+At startup the API verifies the SMTP connection and logs the result.
+
 ## Deployment
 
 **API (VPS + PM2)**
@@ -88,7 +122,8 @@ never drift; load the document and call `save()` instead.
 cd backend
 npm ci --omit=dev
 cp .env.example .env        # NODE_ENV=production, CLIENT_ORIGIN=https://your-vercel-domain,
-                            # STOREFRONT_REVALIDATE_URL=https://your-vercel-domain/api/revalidate
+                            # STOREFRONT_REVALIDATE_URL=https://your-vercel-domain/api/revalidate,
+                            # STOREFRONT_URL, SMTP_* and MAIL_FROM
 npm install -g pm2
 npm run pm2:start           # later deploys: npm run pm2:reload
 pm2 save && pm2 startup

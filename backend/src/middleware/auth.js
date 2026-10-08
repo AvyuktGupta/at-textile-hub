@@ -10,8 +10,11 @@ function extractToken(req) {
 
 async function resolveUser(token) {
   const payload = verifyToken(token);
-  const user = await User.findById(payload.sub);
+  const user = await User.findById(payload.sub).select("+passwordChangedAt");
   if (!user) throw ApiError.unauthorized("The account for this session no longer exists");
+  if (user.tokenIssuedBeforePasswordChange(payload.iat)) {
+    throw ApiError.unauthorized("Your password was changed. Please sign in again.");
+  }
   return user;
 }
 

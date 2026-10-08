@@ -1,19 +1,26 @@
 "use client";
 
 import { createContext, use, useCallback, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { CheckCircle2, AlertCircle, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type ToastTone = "success" | "error";
 
+interface ToastAction {
+  label: string;
+  href: string;
+}
+
 interface Toast {
   id: number;
   tone: ToastTone;
   message: string;
+  action?: ToastAction;
 }
 
 interface ToastContextValue {
-  success: (message: string) => void;
+  success: (message: string, action?: ToastAction) => void;
   error: (message: string) => void;
 }
 
@@ -30,17 +37,17 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const push = useCallback(
-    (tone: ToastTone, message: string) => {
+    (tone: ToastTone, message: string, action?: ToastAction) => {
       const id = ++nextId.current;
-      setToasts((current) => [...current.slice(-2), { id, tone, message }]);
-      window.setTimeout(() => dismiss(id), TOAST_DURATION_MS);
+      setToasts((current) => [...current.slice(-2), { id, tone, message, action }]);
+      window.setTimeout(() => dismiss(id), action ? TOAST_DURATION_MS * 1.5 : TOAST_DURATION_MS);
     },
     [dismiss]
   );
 
   const value = useMemo(
     () => ({
-      success: (message: string) => push("success", message),
+      success: (message: string, action?: ToastAction) => push("success", message, action),
       error: (message: string) => push("error", message),
     }),
     [push]
@@ -68,6 +75,15 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               <AlertCircle className="mt-0.5 size-4 shrink-0 text-danger" aria-hidden />
             )}
             <p className="flex-1 text-ink-soft">{toast.message}</p>
+            {toast.action && (
+              <Link
+                href={toast.action.href}
+                onClick={() => dismiss(toast.id)}
+                className="shrink-0 font-semibold text-brand hover:text-brand-hover"
+              >
+                {toast.action.label}
+              </Link>
+            )}
             <button
               type="button"
               onClick={() => dismiss(toast.id)}

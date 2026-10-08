@@ -98,6 +98,84 @@ export interface SiteSettings {
 
 export type PublicSiteSettings = Omit<SiteSettings, "orderDestinationEmail">;
 
+export type OrderStatus = "submitted" | "confirmed" | "dispatched" | "cancelled";
+export type EmailDeliveryStatus = "pending" | "sent" | "failed" | "skipped";
+
+export interface QuoteLine {
+  productId: string;
+  title: string;
+  slug: string;
+  sku: string;
+  image: string;
+  unit: string;
+  minOrderQty: number;
+  stockStatus: StockStatus;
+  basePrice: number;
+  discountPercentage: number;
+  unitPrice: number;
+  quantity: number;
+  lineTotal: number;
+}
+
+export interface QuoteIssue {
+  productId: string;
+  code: "unavailable" | "out_of_stock" | "below_minimum";
+  message: string;
+}
+
+export interface CartQuote {
+  lines: QuoteLine[];
+  issues: QuoteIssue[];
+  itemCount: number;
+  totalQuantity: number;
+  subtotal: number;
+}
+
+export interface OrderItem {
+  product: string;
+  title: string;
+  sku: string;
+  slug?: string;
+  image?: string;
+  unit: string;
+  quantity: number;
+  basePrice: number;
+  discountPercentage: number;
+  unitPrice: number;
+  lineTotal: number;
+}
+
+export interface EmailDelivery {
+  status: EmailDeliveryStatus;
+  to?: string;
+  error?: string;
+  sentAt?: string;
+}
+
+export interface Order {
+  _id: string;
+  orderNumber: string;
+  customer: {
+    name: string;
+    email: string;
+    phone: string;
+    companyName: string;
+    gstin?: string;
+    businessType?: string;
+    shippingAddress: Address;
+  };
+  items: OrderItem[];
+  itemCount: number;
+  totalQuantity: number;
+  subtotal: number;
+  currency: string;
+  notes?: string;
+  status: OrderStatus;
+  emails?: { business?: EmailDelivery; customer?: EmailDelivery };
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ApiErrorBody {
   success: false;
   message: string;

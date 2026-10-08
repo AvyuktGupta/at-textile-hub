@@ -62,12 +62,14 @@ const userSchema = new mongoose.Schema(
     business: { type: businessSchema, default: () => ({}) },
     role: { type: String, enum: Object.values(ROLES), default: ROLES.USER },
     recentlyViewed: { type: [recentlyViewedSchema], default: [] },
+    passwordChangedAt: { type: Date, select: false },
   },
   {
     timestamps: true,
     toJSON: {
       transform(_doc, ret) {
         delete ret.password;
+        delete ret.passwordChangedAt;
         delete ret.__v;
         return ret;
       },
@@ -78,7 +80,14 @@ const userSchema = new mongoose.Schema(
 userSchema.pre("save", async function hashPassword() {
   if (!this.isModified("password")) return;
   this.password = await bcrypt.hash(this.password, SALT_ROUNDS);
+  // JWT iat has 1s resolution; back-date slightly so the token issued right after this save stays valid.
+  if (!this.isNew) this.passwordChangedAt = new Date(Date.now() - 1000);
 });
+
+/** Tokens issued before the last password change are no longer accepted. */
+userSchema.methods.tokenIssuedBeforePasswordChange = function tokenIssuedBeforePasswordChange(iat) {
+  return Boolean(this.passwordChangedAt && iat && iat * 1000 < this.passwordChangedAt.getTime());
+};
 
 userSchema.methods.comparePassword = function comparePassword(candidate) {
   return bcrypt.compare(candidate, this.password);

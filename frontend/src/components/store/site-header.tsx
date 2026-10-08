@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AccountMenu } from "@/components/store/account-menu";
+import { CartButton } from "@/components/store/cart-button";
 import { HeaderSearch } from "@/components/store/header-search";
 import { siteConfig } from "@/config/site";
 
@@ -50,6 +51,7 @@ export function SiteHeader() {
             Catalogue
           </Link>
           <AccountMenu />
+          <CartButton />
         </div>
       </div>
 

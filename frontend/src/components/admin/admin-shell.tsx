@@ -3,13 +3,14 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ExternalLink, LogOut, Package, Settings2, ShieldAlert } from "lucide-react";
+import { ClipboardList, ExternalLink, LogOut, Package, Settings2, ShieldAlert } from "lucide-react";
 import { buttonClasses } from "@/components/ui/button";
 import { siteConfig } from "@/config/site";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/providers/auth-provider";
 
 const NAV = [
+  { href: "/admin/orders", label: "Orders", icon: ClipboardList },
   { href: "/admin/products", label: "Products", icon: Package },
   { href: "/admin/settings", label: "Site settings", icon: Settings2 },
 ];

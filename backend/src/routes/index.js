@@ -1,8 +1,10 @@
 import { Router } from "express";
 import mongoose from "mongoose";
+import { quote } from "../controllers/orderController.js";
 import { getHome } from "../controllers/storefrontController.js";
 import accountRoutes from "./account.js";
 import authRoutes from "./auth.js";
+import orderRoutes from "./orders.js";
 import productRoutes from "./products.js";
 import settingsRoutes from "./settings.js";
 import uploadRoutes from "./uploads.js";
@@ -20,8 +22,10 @@ router.get("/health", (_req, res) => {
 });
 
 router.get("/storefront/home", getHome);
+router.post("/cart/quote", quote);
 router.use("/auth", authRoutes);
 router.use("/me", accountRoutes);
+router.use("/orders", orderRoutes);
 router.use("/products", productRoutes);
 router.use("/settings", settingsRoutes);
 router.use("/uploads", uploadRoutes);

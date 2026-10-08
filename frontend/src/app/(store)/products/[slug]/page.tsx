@@ -107,12 +107,7 @@ async function ProductDetail({ params }: Pick<PageProps<"/products/[slug]">, "pa
             )}
 
             <div className="mt-6">
-              <PurchasePanel
-                finalPrice={product.finalPrice}
-                minOrderQty={product.minOrderQty}
-                unit={product.unit}
-                stockStatus={product.stockStatus}
-              />
+              <PurchasePanel product={product} />
             </div>
 
             <dl className="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line text-sm">

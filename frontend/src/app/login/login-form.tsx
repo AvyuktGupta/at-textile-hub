@@ -5,14 +5,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import Link from "next/link";
 import { ApiError } from "@/lib/api";
+import { safeNext, withNext } from "@/lib/navigation";
 import { useAuth } from "@/providers/auth-provider";
 import type { User } from "@/types";
-
-/** Only allow same-site relative redirects. */
-function safeNext(value: string | null) {
-  return value && value.startsWith("/") && !value.startsWith("//") ? value : null;
-}
 
 function destinationFor(user: User, next: string | null) {
   if (next?.startsWith("/admin") && user.role !== "admin") return "/";
@@ -76,6 +73,12 @@ export function LoginForm() {
       <Button type="submit" size="lg" loading={submitting} className="mt-2 w-full">
         Sign in
       </Button>
+      <p className="text-center text-sm text-ink-muted">
+        New here?{" "}
+        <Link href={withNext("/register", next)} className="font-semibold text-brand hover:underline">
+          Open a trade account
+        </Link>
+      </p>
     </form>
   );
 }

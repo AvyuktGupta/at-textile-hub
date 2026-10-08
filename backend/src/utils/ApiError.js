@@ -22,7 +22,7 @@ export default class ApiError extends Error {
     return new ApiError(404, message);
   }
 
-  static conflict(message = "Resource already exists") {
-    return new ApiError(409, message);
+  static conflict(message = "Resource already exists", details) {
+    return new ApiError(409, message, details);
   }
 }

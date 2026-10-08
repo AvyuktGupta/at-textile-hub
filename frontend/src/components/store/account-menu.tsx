@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ChevronDown, LayoutDashboard, LogOut, UserRound } from "lucide-react";
+import { ChevronDown, ClipboardList, LayoutDashboard, LogOut, UserRound } from "lucide-react";
 import { buttonClasses } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/providers/auth-provider";
@@ -81,6 +81,15 @@ export function AccountMenu() {
             <p className="truncate text-xs text-ink-muted">{user.business?.companyName || user.email}</p>
           </div>
           <div className="p-1.5">
+            <Link
+              href="/account"
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-ink-soft hover:bg-sunken hover:text-ink"
+            >
+              <ClipboardList className="size-4" aria-hidden />
+              Account & orders
+            </Link>
             {isAdmin && (
               <Link
                 href="/admin"

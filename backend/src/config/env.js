@@ -23,6 +23,11 @@ const env = {
     .split(",")
     .map((origin) => origin.trim())
     .filter(Boolean),
+  storeName: process.env.STORE_NAME || "CupCraft Wholesale",
+  /** Public storefront URL used for links in emails; defaults to the first allowed origin. */
+  storefrontUrl: (process.env.STOREFRONT_URL || process.env.CLIENT_ORIGIN?.split(",")[0] || "http://localhost:3000")
+    .trim()
+    .replace(/\/$/, ""),
   storefrontRevalidate: {
     url: process.env.STOREFRONT_REVALIDATE_URL,
     secret: process.env.REVALIDATE_SECRET,

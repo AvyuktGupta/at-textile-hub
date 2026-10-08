@@ -13,7 +13,11 @@ const LINKS = [
   },
   {
     heading: "Account",
-    items: [{ href: "/login", label: "Sign in" }],
+    items: [
+      { href: "/register", label: "Open a trade account" },
+      { href: "/account", label: "Your account & orders" },
+      { href: "/cart", label: "Current order" },
+    ],
   },
 ];
 

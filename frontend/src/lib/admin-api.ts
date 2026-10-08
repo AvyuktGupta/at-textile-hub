@@ -1,5 +1,14 @@
 import { apiFetch, type ApiResponse, type Paginated } from "@/lib/api";
-import type { HomepageScroll, Product, ProductImage, SiteSettings, StockStatus, TagCount } from "@/types";
+import type {
+  HomepageScroll,
+  Order,
+  OrderStatus,
+  Product,
+  ProductImage,
+  SiteSettings,
+  StockStatus,
+  TagCount,
+} from "@/types";
 
 export type { TagCount };
 
@@ -71,6 +80,15 @@ export const adminApi = {
       body: form,
     });
   },
+
+  listOrders: (token: string, query: { q?: string; status?: string; page?: number; limit?: number }) =>
+    apiFetch<Paginated<Order>>(`/orders${toQueryString(query)}`, { token }),
+
+  updateOrderStatus: (token: string, id: string, status: OrderStatus) =>
+    apiFetch<ApiResponse<Order>>(`/orders/${id}`, { method: "PATCH", token, body: { status } }),
+
+  resendOrderEmail: (token: string, id: string, target: "business" | "customer") =>
+    apiFetch<ApiResponse<Order>>(`/orders/${id}/resend-email`, { method: "POST", token, body: { target } }),
 
   getSettings: (token: string) => apiFetch<ApiResponse<SiteSettings>>("/settings/admin", { token }),
 
