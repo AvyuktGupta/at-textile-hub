@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import multer from "multer";
+import { isCloudinaryEnabled } from "../config/cloudinary.js";
 import { uploadsDir } from "../config/paths.js";
 import ApiError from "../utils/ApiError.js";
 
@@ -15,14 +16,16 @@ const MIME_EXTENSIONS = {
 export const MAX_FILE_SIZE_MB = 5;
 export const MAX_FILES = 10;
 
-fs.mkdirSync(uploadsDir, { recursive: true });
+const storage = isCloudinaryEnabled()
+  ? multer.memoryStorage()
+  : multer.diskStorage({
+      destination: uploadsDir,
+      filename(_req, file, cb) {
+        cb(null, `${Date.now()}-${crypto.randomBytes(8).toString("hex")}${MIME_EXTENSIONS[file.mimetype]}`);
+      },
+    });
 
-const storage = multer.diskStorage({
-  destination: uploadsDir,
-  filename(_req, file, cb) {
-    cb(null, `${Date.now()}-${crypto.randomBytes(8).toString("hex")}${MIME_EXTENSIONS[file.mimetype]}`);
-  },
-});
+if (!isCloudinaryEnabled()) fs.mkdirSync(uploadsDir, { recursive: true });
 
 const multerUpload = multer({
   storage,

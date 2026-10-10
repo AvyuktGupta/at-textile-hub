@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { cloudinaryPublicId, destroyCloudinaryImage } from "../config/cloudinary.js";
 import { UPLOADS_URL_PREFIX, uploadsDir } from "../config/paths.js";
 import Product from "../models/Product.js";
 import SiteSettings from "../models/SiteSettings.js";
@@ -19,15 +20,21 @@ async function isReferenced(url) {
 }
 
 /**
- * Deletes locally uploaded files that are no longer used by any product or the site settings.
- * External URLs are ignored. Failures are logged and never thrown, since the DB write already succeeded.
+ * Deletes uploaded files that are no longer used by any product or the site settings.
+ * Local /uploads files are removed from disk. Cloudinary images in this app's folder are
+ * destroyed there. Other external URLs are ignored. Failures are logged and never thrown,
+ * since the DB write already succeeded.
  */
 export async function removeUnusedUploads(urls = []) {
-  const candidates = [...new Set(urls)].filter((url) => toLocalPath(url));
+  const candidates = [...new Set(urls)].filter((url) => toLocalPath(url) || cloudinaryPublicId(url));
   await Promise.all(
     candidates.map(async (url) => {
       try {
         if (await isReferenced(url)) return;
+        if (cloudinaryPublicId(url)) {
+          await destroyCloudinaryImage(url);
+          return;
+        }
         await fs.unlink(toLocalPath(url));
       } catch (err) {
         if (err.code !== "ENOENT") console.warn(`[uploads] Could not remove ${url}:`, err.message);

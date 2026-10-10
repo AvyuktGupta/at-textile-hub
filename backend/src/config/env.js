@@ -40,7 +40,31 @@ const env = {
     pass: process.env.SMTP_PASS,
     from: process.env.MAIL_FROM,
   },
+  cloudinary: readCloudinary(process.env.CLOUDINARY_URL),
 };
+
+function readCloudinary(raw) {
+  const url = (raw || "").trim();
+  if (!url) return { cloudName: "", apiKey: "", apiSecret: "" };
+
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw new Error("CLOUDINARY_URL is not a valid URL");
+  }
+
+  const cloudName = parsed.hostname;
+  const apiKey = decodeURIComponent(parsed.username);
+  const apiSecret = decodeURIComponent(parsed.password);
+  if (parsed.protocol !== "cloudinary:" || !cloudName || !apiKey || !apiSecret) {
+    throw new Error(
+      "CLOUDINARY_URL must look like cloudinary://<api_key>:<api_secret>@<cloud_name>"
+    );
+  }
+
+  return { cloudName, apiKey, apiSecret };
+}
 
 if (env.isProduction && env.jwtSecret.length < 32) {
   throw new Error("JWT_SECRET must be at least 32 characters in production");
